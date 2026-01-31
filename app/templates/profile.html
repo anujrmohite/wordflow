@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - WordFlow{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <span>{{ current_user.name[0] if current_user.name else current_user.email[0] | upper }}</span>
+            </div>
+            <h1>{{ current_user.name if current_user.name else 'User' }}</h1>
+            <p class="profile-email">{{ current_user.email }}</p>
+        </div>
+        
+        <div class="profile-details">
+            <div class="detail-item">
+                <span class="detail-label">Member Since</span>
+                <span class="detail-value">{{ current_user.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Account Type</span>
+                <span class="detail-value">Standard</span>
+            </div>
+        </div>
+        
+        <div class="profile-actions">
+            <!-- Future: Edit Profile, Change Password -->
+            <form action="{{ url_for('auth.logout') }}" method="POST">
+                <button type="submit" class="btn btn-danger btn-full">Sign Out</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

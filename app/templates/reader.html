@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Reading: {{ document.original_name }} - WordFlow{% endblock %}
+
+{% block extra_css %}
+<style>
+    .reader-navbar { display: none; }
+    .footer { display: none; }
+    body { overflow: hidden; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reader-container" id="readerContainer">
+    <!-- Left Sidebar -->
+    <aside class="reader-sidebar" id="readerSidebar">
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+        
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <h3>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    Document Overview
+                </h3>
+            </div>
+            
+            <!-- Document Info -->
+            <div class="sidebar-section">
+                <h4>Document</h4>
+                <p class="doc-name" title="{{ document.original_name }}">{{ document.original_name }}</p>
+            </div>
+            
+            <!-- Reading Stats -->
+            <div class="sidebar-section">
+                <h4>Reading Stats</h4>
+                <div class="stat-item">
+                    <span class="stat-label">Total Words</span>
+                    <span class="stat-value" id="sidebarTotalWords">{{ document.word_count }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Words Read</span>
+                    <span class="stat-value" id="sidebarWordsRead">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Words Left</span>
+                    <span class="stat-value" id="sidebarWordsLeft">{{ document.word_count }}</span>
+                </div>
+            </div>
+            
+            <!-- Progress Circle -->
+            <div class="sidebar-section progress-section">
+                <h4>Progress</h4>
+                <div class="progress-circle-container">
+                    <svg class="progress-circle" viewBox="0 0 100 100">
+                        <circle class="progress-bg" cx="50" cy="50" r="45"></circle>
+                        <circle class="progress-ring" id="progressRing" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="progress-text-circle">
+                        <span id="sidebarPercent">0</span>%
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Time Estimate -->
+            <div class="sidebar-section">
+                <h4>Time Estimate</h4>
+                <div class="stat-item">
+                    <span class="stat-label">Time Remaining</span>
+                    <span class="stat-value" id="sidebarTimeLeft">--:--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Current Speed</span>
+                    <span class="stat-value"><span id="sidebarWPM">{{ progress.wpm }}</span> WPM</span>
+                </div>
+            </div>
+            
+            <!-- Word Position Mini-map -->
+            <div class="sidebar-section">
+                <h4>Position</h4>
+                <div class="position-bar">
+                    <div class="position-marker" id="positionMarker"></div>
+                </div>
+                <div class="position-labels">
+                    <span>Start</span>
+                    <span>End</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Main Content Area -->
+    <div class="reader-main">
+        <!-- Header Bar -->
+        <div class="reader-header">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="back-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back
+            </a>
+            <div class="document-title">{{ document.original_name }}</div>
+            <div class="progress-indicator">
+                <span id="currentWord">0</span> / <span id="totalWords">{{ document.word_count }}</span>
+            </div>
+        </div>
+        
+        <!-- Main Word Display -->
+        <div class="word-display-area">
+            <div class="reader-content">
+            <div id="wordDisplay" class="reader-word" dir="auto">Ready</div>
+        </div>
+        </div>
+        
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <!-- Navigation Controls -->
+            <div class="nav-controls">
+                <button class="control-btn" id="prevBtn" title="Previous word">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                        <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"></line>
+                    </svg>
+                </button>
+                <button class="control-btn play-btn" id="playBtn" title="Play/Pause">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+                <button class="control-btn" id="nextBtn" title="Next word">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                        <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Speed Control -->
+            <div class="speed-controls">
+                <label>Speed: <span id="wpmValue">{{ progress.wpm }}</span> WPM</label>
+                <input type="range" id="wpmSlider" 
+                       min="{{ wpm_min }}" max="{{ wpm_max }}" 
+                       value="{{ progress.wpm }}" step="10">
+            </div>
+            
+            <!-- Font Size Control -->
+            <div class="font-controls">
+                <label>Font Size</label>
+                <div class="font-btns">
+                    <button class="control-btn small-btn" id="fontDecrease">A-</button>
+                    <span id="fontSizeValue">{{ progress.font_size }}</span>px
+                    <button class="control-btn small-btn" id="fontIncrease">A+</button>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="reading-progress">
+                <div class="progress-bar-large">
+                    <div class="progress-fill-large" id="progressBar"></div>
+                </div>
+                <span id="progressPercent">0%</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Sidebar - Page Preview -->
+    <aside class="reader-sidebar-right" id="readerSidebarRight">
+        <button class="sidebar-toggle-right" id="sidebarToggleRight" title="Toggle Page Preview">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+        </button>
+        
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <h3>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    Page Preview
+                </h3>
+            </div>
+            
+            <div class="page-slides-container" id="pageSlidesContainer">
+                <!-- Pages will be dynamically generated -->
+            </div>
+            
+            <div class="page-nav">
+                <button class="page-nav-btn" id="prevPageBtn" title="Previous page">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <polyline points="15 18 9 12 15 6" stroke="currentColor" stroke-width="2" fill="none"></polyline>
+                    </svg>
+                </button>
+                <span class="page-indicator">
+                    Page <span id="currentPageNum">1</span> / <span id="totalPages">1</span>
+                </span>
+                <button class="page-nav-btn" id="nextPageBtn" title="Next page">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <polyline points="9 18 15 12 9 6" stroke="currentColor" stroke-width="2" fill="none"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const DOC_ID = {{ document.id }};
+    const INITIAL_WORD_INDEX = {{ progress.last_word_index }};
+    const INITIAL_WPM = {{ progress.wpm }};
+    const INITIAL_FONT_SIZE = {{ progress.font_size }};
+    const WPM_MIN = {{ wpm_min }};
+    const WPM_MAX = {{ wpm_max }};
+</script>
+<script src="{{ url_for('static', filename='js/reader.js') }}"></script>
+{% endblock %}

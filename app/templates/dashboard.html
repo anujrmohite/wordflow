@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - WordFlow{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>{{ greeting }}, {{ user_name }}</h1>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Main Content -->
+        <div class="main-column">
+            <div class="dashboard-card">
+                <div class="dashboard-header">
+                    <h2>Upload Document</h2>
+                </div>
+                <!-- Upload Section -->
+                <div class="upload-section">
+                    <form action="{{ url_for('dashboard.upload') }}" method="POST" enctype="multipart/form-data" class="upload-form">
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                                </svg>
+                            </div>
+                            <p class="upload-text">Drag & drop your PDF here or</p>
+                            <label class="upload-btn">
+                                Browse Files
+                                <input type="file" name="file" accept=".pdf" id="fileInput" hidden>
+                            </label>
+                            <p class="upload-hint">Maximum file size: 16MB</p>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="upload-progress" id="uploadProgress" style="display: none;">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-status">
+                                <span id="progressText">Uploading...</span>
+                                <span id="progressPercent">0%</span>
+                            </div>
+                        </div>
+            
+                        <button type="submit" class="btn btn-primary btn-upload btn-block" id="uploadBtn" disabled>
+                            Upload PDF
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar: Activity Timeline -->
+        <div class="side-column">
+            <div class="dashboard-card">
+                <div class="timeline-section">
+                    <div class="dashboard-header">
+                        <h2>Reading Activity</h2>
+                    </div>
+                    
+                    {% if timeline %}
+                    <div class="timeline">
+                        {% for group in timeline %}
+                        <div class="timeline-group">
+                            <div class="timeline-date">{{ group.date }}</div>
+                            <div class="timeline-items">
+                                {% for item in group.entries %}
+                                <div class="timeline-item">
+                                    <div class="timeline-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-info">
+                                            <span class="timeline-book">{{ item.document.original_name }}</span>
+                                            <span class="timeline-stats">{{ item.words_read }} words read</span>
+                                        </div>
+                                        <a href="{{ url_for('reader.read', doc_id=item.document_id) }}" class="timeline-action" title="Continue Reading">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                <polyline points="12 5 19 12 12 19"></polyline>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Pagination Controls -->
+                    {% if pagination and pagination.pages > 1 %}
+                    <div class="pagination-controls">
+                        {% if pagination.has_prev %}
+                        <a href="{{ url_for('dashboard.dashboard', page=pagination.prev_num) }}" class="pagination-btn">Previous</a>
+                        {% else %}
+                        <span class="pagination-btn disabled">Previous</span>
+                        {% endif %}
+                        
+                        <span class="pagination-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+                        
+                        {% if pagination.has_next %}
+                        <a href="{{ url_for('dashboard.dashboard', page=pagination.next_num) }}" class="pagination-btn">Next</a>
+                        {% else %}
+                        <span class="pagination-btn disabled">Next</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon" style="font-size: 3rem;">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 1.1rem;">No recent activity</h3>
+                        <p style="font-size: 0.9rem;">Start reading to see progress</p>
+                    </div>
+                {% endif %}
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // File input handling
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadArea = document.getElementById('uploadArea');
+    const uploadText = uploadArea.querySelector('.upload-text');
+    const uploadForm = document.querySelector('.upload-form');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const progressText = document.getElementById('progressText');
+    const progressPercent = document.getElementById('progressPercent');
+    
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            uploadText.textContent = this.files[0].name;
+            uploadBtn.disabled = false;
+            uploadArea.classList.add('has-file');
+        }
+    });
+    
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type === 'application/pdf') {
+            fileInput.files = files;
+            uploadText.textContent = files[0].name;
+            uploadBtn.disabled = false;
+            uploadArea.classList.add('has-file');
+        }
+    });
+
+    // AJAX Upload with Progress
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const file = fileInput.files[0];
+        if (!file) return;
+        
+        // Show progress UI
+        uploadProgress.style.display = 'block';
+        uploadBtn.disabled = true;
+        
+        const formData = new FormData(uploadForm);
+        const xhr = new XMLHttpRequest();
+        
+        xhr.open('POST', uploadForm.action, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        
+        // Progress tracking
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                progressBarFill.style.width = percentComplete + '%';
+                progressPercent.textContent = percentComplete + '%';
+                
+                if (percentComplete < 100) {
+                    progressText.textContent = 'Uploading...';
+                } else {
+                    progressText.textContent = 'Processing PDF...';
+                }
+            }
+        };
+        
+        xhr.onload = function() {
+            if (xhr.status === 200 || xhr.status === 302) {
+                // Success - update UI and redirect
+                progressText.textContent = 'Upload complete! Redirecting to library...';
+                progressBarFill.style.backgroundColor = '#48bb78'; // Green
+                
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('dashboard.library') }}";
+                }, 1000);
+            } else {
+                alert('Upload failed: ' + xhr.statusText);
+                uploadProgress.style.display = 'none';
+                uploadBtn.disabled = false;
+            }
+        };
+        
+        xhr.onerror = function() {
+            alert('An error occurred during upload.');
+            uploadProgress.style.display = 'none';
+            uploadBtn.disabled = false;
+        };
+        
+        xhr.send(formData);
+    });
+    
+    // Delete functionality
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const docId = this.dataset.id;
+            if (confirm('Are you sure you want to delete this document?')) {
+                try {
+                    const response = await fetch(`/document/${docId}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        this.closest('.document-card').remove();
+                        // Check if no documents left
+                        if (document.querySelectorAll('.document-card').length === 0) {
+                            location.reload();
+                        }
+                    } else {
+                        alert('Failed to delete document');
+                    }
+                } catch (error) {
+                    alert('An error occurred');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
